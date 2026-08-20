@@ -1,0 +1,8 @@
+{
+  "name": "greenfield",
+  "description": "A greenfield delivery methodology: spec-driven engagement gates, client sign-off artifacts, tracker integration, and build standards.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Abhishek Singh"
+  }
+}

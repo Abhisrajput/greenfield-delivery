@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "greenfield-delivery",
+  "description": "Spec-driven delivery methodology for greenfield engagements.",
+  "owner": {
+    "name": "Abhishek Singh"
+  },
+  "plugins": [
+    {
+      "name": "greenfield",
+      "description": "Spec-driven greenfield delivery: engagement gates, client sign-off artifacts, and tracker integration.",
+      "version": "0.2.0",
+      "source": "./",
+      "author": {
+        "name": "Abhishek Singh"
+      }
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+name: Engagement conformance
+
+# Runs the conformance checks on every push and pull request.
+#
+# Why this exists: the gates are not enforced, they are DETECTED. Nothing stops
+# anyone editing `signoffs.md` by hand and committing it — git will take a
+# fabricated approval that skips three gates without complaint. The checks are
+# the net, and a net nobody runs catches nothing. This makes them run without
+# anyone having to remember.
+#
+# Copy this file into the CLIENT repository, not just this one. It is the
+# engagement record that needs checking.
+#
+# A failing check is not always a bug to fix in the diff. `G3 approved
+# artifacts unchanged` goes red the moment a signed requirement changes, and
+# staying red is CORRECT while a change order is being agreed — that is the
+# finding, not a lint error. Do not "fix" it by re-signing the gate to make CI
+# green: recording an approval the client never gave is the one failure this
+# methodology exists to prevent, and it is invisible afterwards because a
+# fabricated sign-off looks exactly like a real one. Merge with an explicit
+# override and a note, or close the change order first.
+#
+# Teams that would rather this never blocked a merge can add
+# `continue-on-error: true` to the step — the report still reaches the job
+# summary either way.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "docs/engagement/**"
+
+jobs:
+  conform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Sign-off verification compares each approved artifact against the
+          # commit it was approved at, so the checks need real history. Under
+          # the default shallow clone every G2 and G3 result would be a skip —
+          # honest, but checking nothing.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # This file ships inside the plugin repository but is written for CLIENT
+      # repositories. The plugin repo has no docs/engagement/, so without this
+      # guard every push to main ran the checker against a directory that is
+      # not an engagement, failed E1, and left a public repo with a
+      # permanently red badge — which teaches everyone who sees it that a red
+      # check here means nothing.
+      - name: Is this an engagement?
+        id: engagement
+        run: |
+          if [ -f docs/engagement/engagement.md ]; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "No docs/engagement/engagement.md — nothing to check." \
+              >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Check the engagement record
+        if: steps.engagement.outputs.found == 'true' 
+        # `set -o pipefail` is load-bearing, not boilerplate. GitHub runs `run:`
+        # under `bash -e` WITHOUT pipefail, so a pipeline reports the exit code
+        # of its LAST command — `tee` — which always succeeds. Without this line
+        # conform.py exits 1, tee exits 0, and the job goes green while printing
+        # the failures it just found into the summary. A check that cannot fail
+        # is worse than no check, because the badge is believed.
+        run: |
+          set -o pipefail
+          python3 scripts/conform.py --root . | tee -a "$GITHUB_STEP_SUMMARY"
